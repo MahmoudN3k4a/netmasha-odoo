@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">netmasha.attribution.res.config.settings.view.form</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="20"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app notApp="1" string="Netmasha" data-string="Netmasha" name="netmasha_attribution" groups="base.group_system">
+                    <block title="Netmasha" name="netmasha_attribution_settings">
+                        <setting id="netmasha_api_base" string="Netmasha API base URL" help="The address of your Netmasha server. Only change it if you run your own Netmasha installation.">
+                            <field name="netmasha_api_base" placeholder="https://api.netmasha.com"/>
+                        </setting>
+                        <setting id="netmasha_store_id" string="Netmasha store id" help="The store id Netmasha gave you. It is part of your Netmasha store URL.">
+                            <field name="netmasha_store_id" placeholder="netmasha-abc123"/>
+                        </setting>
+                        <setting id="netmasha_webhook_secret" string="Webhook secret" help="Write only. The saved secret is never shown again, so leave this field empty to keep it.">
+                            <field name="netmasha_webhook_secret" password="True" placeholder="Paste the webhook secret"/>
+                            <div class="text-muted" invisible="not netmasha_webhook_secret_set">
+                                <span>A secret is saved. Leave the field empty to keep it.</span>
+                            </div>
+                        </setting>
+                        <setting id="netmasha_realtime" string="Real-time events" help="When on, a paid invoice and a posted credit note are reported to Netmasha as soon as they happen. When off, only Netmasha's hourly readback reports them.">
+                            <field name="netmasha_realtime"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

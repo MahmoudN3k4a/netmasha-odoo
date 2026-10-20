@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Netmasha Attribution</title>
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif; color: #2b2b2b; max-width: 760px; margin: 0 auto; padding: 16px; line-height: 1.5;">
+
+<h1 style="margin-bottom: 4px;">Netmasha Attribution</h1>
+<p style="margin-top: 0; font-size: 18px;">
+    Connects this Odoo shop to your Netmasha account: it keeps the Netmasha
+    click id of a shopper on the sale order, and reports paid orders and
+    refunds to Netmasha in real time.
+</p>
+
+<h2>What it does</h2>
+<ul>
+    <li><strong>Keeps the attribution.</strong> A shopper who arrives from the
+        Netmasha mall carries an opaque click id. The addon stores it on the
+        sale order, so Netmasha knows which orders came from the mall.</li>
+    <li><strong>Reports paid orders.</strong> When a customer invoice of such
+        an order becomes paid, the addon sends a signed event to Netmasha.</li>
+    <li><strong>Reports refunds.</strong> When a credit note is posted for such
+        an order, the addon sends a signed refund event to Netmasha.</li>
+    <li><strong>Never blocks your shop.</strong> Every event is signed with a
+        secret only your shop and Netmasha know. If a delivery fails, the
+        addon writes a warning in the log and moves on; Netmasha's hourly
+        readback reports anything that was missed.</li>
+</ul>
+
+<h2>Setup in 4 steps</h2>
+<ol>
+    <li>Install the module from Apps and make sure the Netmasha website
+        tracking code is on your shop pages (it is part of the module).</li>
+    <li>Open <em>Settings &rarr; Netmasha</em>.</li>
+    <li>Paste your <strong>Netmasha store id</strong> and your
+        <strong>webhook secret</strong>, then save. The secret is write-only:
+        it is never shown again, so leave the field empty to keep the saved
+        one.</li>
+    <li>Keep <strong>Send events in real time</strong> on, and place a test
+        order. Netmasha receives the paid order as soon as the invoice is
+        paid.</li>
+</ol>
+
+<h2>What leaves this shop</h2>
+<p>
+    Only the following is sent to Netmasha, and only for orders that carry a
+    Netmasha click id:
+</p>
+<ul>
+    <li>For a paid order: the sale order id and name, the total and the tax
+        amount, the currency, the number of order lines, the order date and
+        the opaque click id.</li>
+    <li>For a credit note: the credit note id, the id of the sale order it
+        belongs to, the amount, the currency and the invoice date.</li>
+</ul>
+
+<h2>Privacy</h2>
+<p>
+    The addon stores one thing on your side: the opaque Netmasha click id on
+    the sale order. It is a random reference, not a customer record. No
+    customer name, address, e-mail or payment detail is stored by the addon
+    and no customer data leaves your Odoo server: the order totals listed
+    above are the only information that is sent to Netmasha.
+</p>
+
+<h2>Requirements</h2>
+<ul>
+    <li>Odoo 17.0 with the Sales, Invoicing and Website modules.</li>
+    <li>A Netmasha account and a webhook secret from your Netmasha store
+        page.</li>
+</ul>
+
+<p style="color: #6c6c6c; font-size: 13px; margin-top: 28px;">
+    Netmasha Attribution &mdash; LGPL-3 &mdash; netmasha.com
+</p>
+
+</body>
+</html>
