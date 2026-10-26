@@ -9,8 +9,9 @@
 <h1 style="margin-bottom: 4px;">Netmasha Attribution</h1>
 <p style="margin-top: 0; font-size: 18px;">
     Connects this Odoo shop to your Netmasha account: it keeps the Netmasha
-    click id of a shopper on the sale order, and reports paid orders and
-    refunds to Netmasha in real time.
+    click id of a shopper on the sale order, and reports paid orders,
+    cancellations and refunds to Netmasha in real time, and turns the
+    Netmasha points a shopper spends into a single-use discount code.
 </p>
 
 <h2>What it does</h2>
@@ -20,37 +21,60 @@
         sale order, so Netmasha knows which orders came from the mall.</li>
     <li><strong>Reports paid orders.</strong> When a customer invoice of such
         an order becomes paid, the addon sends a signed event to Netmasha.</li>
+    <li><strong>Reports cancellations.</strong> When such an order is
+        cancelled, the addon sends a signed cancellation event to Netmasha.</li>
     <li><strong>Reports refunds.</strong> When a credit note is posted for such
         an order, the addon sends a signed refund event to Netmasha.</li>
+    <li><strong>Takes Netmasha points as a discount code.</strong> When a
+        shopper spends Netmasha points at your shop, Netmasha asks the addon
+        to create one single-use discount code with Odoo&rsquo;s Loyalty module
+        (a code starting with <code>NM</code>, a fixed amount, a minimum order
+        and an expiry). The shopper enters it in the cart like any promotion
+        code; the paid-order event names it, so the points are spent once.
+        This is part of installing the addon, as agreed in your Netmasha
+        merchant terms; there is no setting to switch it on or off. The
+        request is signed with your webhook secret, must be less than five
+        minutes old and can be used only once, and it can only create or remove
+        the <code>NM</code> codes Netmasha made, never any other promotion.</li>
     <li><strong>Never blocks your shop.</strong> Every event is signed with a
         secret only your shop and Netmasha know. If a delivery fails, the
         addon writes a warning in the log and moves on; Netmasha's hourly
         readback reports anything that was missed.</li>
 </ul>
 
-<h2>Setup in 4 steps</h2>
+<h2>Setup in 2 steps</h2>
+<p>Step-by-step help:
+    <a href="https://business.netmasha.com/docs/connect-odoo">business.netmasha.com/docs/connect-odoo</a>
+    (Odoo Online: <a href="https://business.netmasha.com/docs/connect-odoo-online">connect Odoo Online</a>).</p>
 <ol>
-    <li>Install the module from Apps and make sure the Netmasha website
-        tracking code is on your shop pages (it is part of the module).</li>
-    <li>Open <em>Settings &rarr; Netmasha</em>.</li>
-    <li>Paste your <strong>Netmasha store id</strong> and your
-        <strong>webhook secret</strong>, then save. The secret is write-only:
-        it is never shown again, so leave the field empty to keep the saved
-        one.</li>
-    <li>Keep <strong>Send events in real time</strong> on, and place a test
-        order. Netmasha receives the paid order as soon as the invoice is
-        paid.</li>
+    <li>Install the module from Apps. The Netmasha website tracking code is
+        part of the module.</li>
+    <li>Open <em>Settings &rarr; Netmasha</em>, press
+        <strong>Connect to Netmasha</strong>, sign in to Netmasha and approve.
+        You are back in Odoo, connected. Nothing to copy or paste: no store id,
+        no secret, no API key.</li>
 </ol>
+<p>
+    To stop, press <strong>Disconnect</strong> in the same place.
+</p>
 
 <h2>What leaves this shop</h2>
 <p>
     Only the following is sent to Netmasha, and only for orders that carry a
-    Netmasha click id:
+    Netmasha click id or were paid with a Netmasha discount code:
 </p>
 <ul>
+    <li>When you press Connect, the shop address and a one-time check value
+        go to the Netmasha portal, and Netmasha sends back your store id and a
+        secret in exchange for a one-time code. After that, Netmasha reads your
+        orders, credit notes and products through this module's own signed
+        routes, so it does not hold an Odoo API key.</li>
     <li>For a paid order: the sale order id and name, the total and the tax
         amount, the currency, the number of order lines, the order date and
-        the opaque click id.</li>
+        the opaque click id, and the code and discount amount of the Netmasha
+        discount code used (none of your other promotions).</li>
+    <li>For a cancelled order: the sale order id, the currency and the time
+        of the cancellation.</li>
     <li>For a credit note: the credit note id, the id of the sale order it
         belongs to, the amount, the currency and the invoice date.</li>
 </ul>
@@ -61,12 +85,16 @@
     the sale order. It is a random reference, not a customer record. No
     customer name, address, e-mail or payment detail is stored by the addon
     and no customer data leaves your Odoo server: the order totals listed
-    above are the only information that is sent to Netmasha.
+    above are the only information that is sent to Netmasha. What Netmasha
+    sends in is a code, an amount, a minimum order and an expiry; it contains
+    no personal data.
 </p>
 
 <h2>Requirements</h2>
 <ul>
-    <li>Odoo 17.0 with the Sales, Invoicing and Website modules.</li>
+    <li>Odoo 17.0 with the Sales, Invoicing, Website and Loyalty
+        (<code>sale_loyalty</code>) modules; Loyalty is installed with the
+        addon.</li>
     <li>A Netmasha account and a webhook secret from your Netmasha store
         page.</li>
 </ul>

@@ -113,3 +113,68 @@ def _post(url, body, headers):
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
+
+
+# ----------------------------------------------------------------------
+# One-click connect
+# ----------------------------------------------------------------------
+
+PARAM_PENDING = "netmasha_attribution.pending_connect"
+PARAM_STORE_NAME = "netmasha_attribution.store_name"
+PARAM_CONNECTED_AT = "netmasha_attribution.connected_at"
+PARAM_PORTAL_BASE = "netmasha_attribution.portal_base"
+
+
+def is_connected(env):
+    """True when a store id and a secret are saved."""
+    config = read_config(env)
+    return bool(config["store_id"] and config["secret"])
+
+
+def post_json(url, payload):
+    """POST ``payload`` as JSON. Returns ``(status, body_dict)``; never raises.
+
+    Used for the server-to-server calls of the Connect flow. The body is never
+    logged: it carries a one-time code and the verifier.
+    """
+    import json
+
+    data = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    try:
+        if requests is not None:
+            response = requests.post(url, data=data, headers=headers, timeout=TIMEOUT)
+            status, text = response.status_code, response.text
+        else:
+            request = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            try:
+                with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+                    status, text = response.status, response.read().decode("utf-8", "replace")
+            except urllib.error.HTTPError as error:
+                status, text = error.code, error.read().decode("utf-8", "replace")
+        try:
+            body = json.loads(text)
+        except ValueError:
+            body = {}
+        return status, body if isinstance(body, dict) else {}
+    except Exception as error:  # noqa: BLE001 - a connect attempt must fail softly
+        _logger.warning("Netmasha: a connect request could not be sent (%s).", type(error).__name__)
+        return 0, {}
+
+
+def forget_connection(env):
+    """Drop the store id, the secret and the pending connect attempt."""
+    parameters = env["ir.config_parameter"].sudo()
+    for key in (PARAM_STORE_ID, PARAM_SECRET, PARAM_STORE_NAME, PARAM_CONNECTED_AT, PARAM_PENDING):
+        parameters.set_param(key, False)
+
+
+def post_signed(url, body, headers):
+    """POST the exact signed ``body`` bytes. Returns the HTTP status, or 0; never raises."""
+    merged = {"Content-Type": "application/json"}
+    merged.update(headers)
+    try:
+        return _post(url, body, merged)
+    except Exception as error:  # noqa: BLE001
+        _logger.warning("Netmasha: a signed request could not be sent (%s).", type(error).__name__)
+        return 0

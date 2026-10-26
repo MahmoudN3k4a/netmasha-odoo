@@ -57,7 +57,7 @@ class AccountMove(models.Model):
         for order in self._netmasha_sale_orders():
             payload = order._netmasha_order_payload()
             if not payload:
-                # No Netmasha click: the order did not come from the mall.
+                # No Netmasha click and no Netmasha voucher: nothing to report.
                 continue
             event_id = netmasha_events.order_event_id(self.env.cr.dbname, order.id)
             if not self._netmasha_claim(event_id):
@@ -91,7 +91,7 @@ class AccountMove(models.Model):
     def _netmasha_report_refund(self, config):
         """Queue the signed refund event of a posted credit note."""
         order = self._netmasha_sale_order()
-        if not order or not order.sudo().x_netmasha_click:
+        if not order or not order._netmasha_is_reportable():
             return
         payload = netmasha_events.build_refund_payload({
             "id": self.id,
@@ -114,6 +114,20 @@ class AccountMove(models.Model):
                 payload,
             )
         )
+
+    def _netmasha_readback_row(self):
+        """One posted credit note as Netmasha's hourly readback expects it."""
+        self.ensure_one()
+        order = self._netmasha_sale_order()
+        return {
+            "id": self.id,
+            "name": self.name,
+            "amount_total": self.amount_total,
+            "currency_id": [self.currency_id.id, self.currency_id.name or ""],
+            "invoice_date": netmasha_sender.iso_date(self.invoice_date),
+            "invoice_origin": self.invoice_origin or "",
+            "x_netmasha_order_id": str(order.id) if order else "",
+        }
 
     def _netmasha_sale_orders(self):
         """The sale orders this document belongs to."""

@@ -9,14 +9,37 @@
             <xpath expr="//form" position="inside">
                 <app notApp="1" string="Netmasha" data-string="Netmasha" name="netmasha_attribution" groups="base.group_system">
                     <block title="Netmasha" name="netmasha_attribution_settings">
+                        <field name="netmasha_connected" invisible="1"/>
+                        <setting id="netmasha_connect" string="Connect to Netmasha"
+                                 help="Sign in to Netmasha and approve. Nothing to copy or paste."
+                                 invisible="netmasha_connected">
+                            <div class="mt8">
+                                <button name="action_netmasha_connect" type="object" class="btn-primary" string="Connect to Netmasha"/>
+                            </div>
+                        </setting>
+                        <setting id="netmasha_status" string="Connected to Netmasha"
+                                 help="Paid orders, cancellations and refunds of Netmasha shoppers are reported automatically, and Netmasha shoppers can spend their points as discount codes here."
+                                 invisible="not netmasha_connected">
+                            <div class="mt8">
+                                <strong><field name="netmasha_store_name" readonly="1" nolabel="1"/></strong>
+                                <span class="text-success"> &#10003;</span>
+                            </div>
+                            <div class="mt8">
+                                <button name="action_netmasha_connect" type="object" class="btn-secondary" string="Reconnect"/>
+                                <button name="action_netmasha_disconnect" type="object" class="btn-secondary ms-2" string="Disconnect"
+                                        confirm="Disconnect this shop from Netmasha? Reporting and Netmasha discount codes stop."/>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Manual setup (support only)" name="netmasha_attribution_manual" groups="base.group_no_one">
                         <setting id="netmasha_api_base" string="Netmasha API base URL" help="The address of your Netmasha server. Only change it if you run your own Netmasha installation.">
                             <field name="netmasha_api_base" placeholder="https://api.netmasha.com"/>
                         </setting>
-                        <setting id="netmasha_store_id" string="Netmasha store id" help="The store id Netmasha gave you. It is part of your Netmasha store URL.">
+                        <setting id="netmasha_store_id" string="Netmasha store id" help="Filled in by Connect. Only edit it if Netmasha support asks you to.">
                             <field name="netmasha_store_id" placeholder="netmasha-abc123"/>
                         </setting>
-                        <setting id="netmasha_webhook_secret" string="Webhook secret" help="Write only. The saved secret is never shown again, so leave this field empty to keep it.">
-                            <field name="netmasha_webhook_secret" password="True" placeholder="Paste the webhook secret"/>
+                        <setting id="netmasha_webhook_secret" string="Webhook secret" help="Write only. Filled in by Connect. The saved secret is never shown again.">
+                            <field name="netmasha_webhook_secret" password="True" placeholder="Only if Netmasha support asks you to"/>
                             <div class="text-muted" invisible="not netmasha_webhook_secret_set">
                                 <span>A secret is saved. Leave the field empty to keep it.</span>
                             </div>

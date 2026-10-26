@@ -1,4 +1,11 @@
-from odoo import api, fields, models
+import json
+import time
+
+from odoo import _, api, fields, models
+from odoo.exceptions import AccessError
+
+from . import netmasha_sender
+from ..utils import netmasha_events
 
 PARAM_API_BASE = "netmasha_attribution.api_base"
 PARAM_STORE_ID = "netmasha_attribution.store_id"
@@ -50,6 +57,72 @@ class ResConfigSettings(models.TransientModel):
              "Netmasha as soon as they happen. When off, only Netmasha's hourly "
              "readback reports them.",
     )
+
+    netmasha_connected = fields.Boolean(
+        string="Connected to Netmasha",
+        compute="_compute_netmasha_connection",
+        groups="base.group_system",
+    )
+    netmasha_store_name = fields.Char(
+        string="Netmasha store",
+        compute="_compute_netmasha_connection",
+        groups="base.group_system",
+    )
+
+    def _compute_netmasha_connection(self):
+        parameters = self.env["ir.config_parameter"].sudo()
+        connected = netmasha_sender.is_connected(self.env)
+        name = parameters.get_param(netmasha_sender.PARAM_STORE_NAME) or ""
+        for record in self:
+            record.netmasha_connected = connected
+            record.netmasha_store_name = name
+
+    def action_netmasha_connect(self):
+        """Connect to Netmasha: open the portal, where the merchant signs in and approves.
+
+        A random state and a PKCE verifier stay in a system parameter for fifteen
+        minutes; only the verifier's hash leaves this server. Nothing is copied or
+        pasted by the merchant.
+        """
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise AccessError(_("Only an administrator can connect this shop to Netmasha."))
+        parameters = self.env["ir.config_parameter"].sudo()
+        site = (parameters.get_param("web.base.url") or "").rstrip("/")
+        state = netmasha_events.new_state()
+        verifier = netmasha_events.new_verifier()
+        parameters.set_param(
+            netmasha_sender.PARAM_PENDING,
+            json.dumps({
+                "state": state,
+                "verifier": verifier,
+                "uid": self.env.uid,
+                "expires": time.time() + netmasha_events.CONNECT_TTL_SECONDS,
+            }),
+        )
+        url = netmasha_events.build_connect_url(
+            parameters.get_param(netmasha_sender.PARAM_PORTAL_BASE) or netmasha_events.DEFAULT_PORTAL_BASE,
+            site,
+            netmasha_events.build_return_url(site, state),
+            netmasha_events.pkce_challenge(verifier),
+        )
+        return {"type": "ir.actions.act_url", "url": url, "target": "self"}
+
+    def action_netmasha_disconnect(self):
+        """Tell Netmasha (signed), then forget the connection here whatever it answers."""
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise AccessError(_("Only an administrator can disconnect this shop from Netmasha."))
+        config = netmasha_sender.read_config(self.env)
+        if config["store_id"] and config["secret"]:
+            body = netmasha_events.disconnect_body(config["store_id"], time.time())
+            netmasha_sender.post_signed(
+                "%s/api/connect/disconnect" % config["api_base"].rstrip("/"),
+                body,
+                {"X-Netmasha-Signature": netmasha_events.sign(config["secret"], body)},
+            )
+        netmasha_sender.forget_connection(self.env)
+        return {"type": "ir.actions.client", "tag": "reload"}
 
     def _compute_netmasha_webhook_secret_set(self):
         saved = bool(self.env["ir.config_parameter"].sudo().get_param(PARAM_SECRET))
